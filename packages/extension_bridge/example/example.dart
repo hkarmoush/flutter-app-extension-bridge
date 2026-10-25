@@ -1,10 +1,10 @@
-/// Example demonstrating low-level wire protocol primitives in
-/// `package:extension_bridge`.
+/// Example demonstrating low-level wire protocol primitives and Darwin FFI
+/// `<notify.h>` 64-bit state registers in `package:extension_bridge`.
 library;
 
 import 'package:extension_bridge/extension_bridge.dart';
 
-void main() {
+Future<void> main() async {
   // 1. Derive a 16-bit logical writer ID and pack a 64-bit <notify.h> register.
   final writerId = deriveLogicalWriterId(pid: 48210, instanceNonce: 1);
   final register = KernelStateRegister.pack(
@@ -41,4 +41,14 @@ void main() {
   final bytes = codec.encodeToBytes(envelope);
   final decoded = codec.decodeFromBytes(bytes);
   assert(decoded.generation == 7);
+
+  // 4. Use DarwinNotificationBus for ~299 ns shared-memory checks & signals.
+  if (DarwinPosixFfi.isSupportedPlatform) {
+    final bus = DarwinNotificationBus(writerId: writerId);
+    const channel = 'dev.extension_bridge.example.now_playing';
+    bus.publishState(channel, generation: decoded.generation);
+    final kernelReg = bus.getRegister(channel);
+    assert(kernelReg.generation == 7);
+    await bus.dispose();
+  }
 }
