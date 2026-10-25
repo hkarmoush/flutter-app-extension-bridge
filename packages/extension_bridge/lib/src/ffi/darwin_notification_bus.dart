@@ -72,13 +72,20 @@ final class DarwinNotificationToken implements Finalizable {
       );
     }
 
-    demuxer.registerToken(result.token, onNotification);
-    return DarwinNotificationToken._(
+    final created = DarwinNotificationToken._(
       notificationName: notificationName,
       token: result.token,
       isDispatchToken: true,
       posix: ffi,
+      onNotification: onNotification,
     );
+    final weakToken = WeakReference<DarwinNotificationToken>(created);
+    demuxer.registerToken(
+      result.token,
+      (int rawToken) => weakToken.target?._onNotification?.call(rawToken),
+      owner: created,
+    );
+    return created;
   }
 
   DarwinNotificationToken._({
@@ -86,8 +93,10 @@ final class DarwinNotificationToken implements Finalizable {
     required int token,
     required this.isDispatchToken,
     required DarwinPosixFfi posix,
+    void Function(int token)? onNotification,
   })  : _token = token,
-        _posix = posix {
+        _posix = posix,
+        _onNotification = onNotification {
     _notifyCancelFinalizer.attach(
       this,
       Pointer<Void>.fromAddress(token),
@@ -107,6 +116,7 @@ final class DarwinNotificationToken implements Finalizable {
   final bool isDispatchToken;
 
   final DarwinPosixFfi _posix;
+  final void Function(int token)? _onNotification;
   int _token;
   bool _isCanceled = false;
 
@@ -126,7 +136,10 @@ final class DarwinNotificationToken implements Finalizable {
     final activeToken = _token;
     _token = kNotifyTokenInvalid;
     if (isDispatchToken) {
-      DarwinNotifyBlockDemuxer.instance.unregisterToken(activeToken);
+      DarwinNotifyBlockDemuxer.instance.unregisterToken(
+        activeToken,
+        detachOwner: this,
+      );
     }
     _posix.notifyCancel(activeToken);
   }
@@ -158,6 +171,16 @@ final class DarwinStateWakeupEvent {
   int get generation => register.generation;
 
   @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DarwinStateWakeupEvent &&
+          other.notificationName == notificationName &&
+          other.register == register;
+
+  @override
+  int get hashCode => Object.hash(notificationName, register);
+
+  @override
   String toString() =>
       'DarwinStateWakeupEvent(name: $notificationName, register: ${register.toHexString()})';
 }
@@ -187,6 +210,18 @@ final class DarwinSignalEvent {
 
   /// Full 64-bit [KernelStateRegister] snapshot read from `notifyd`.
   final KernelStateRegister register;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DarwinSignalEvent &&
+          other.signalName == signalName &&
+          other.writerId == writerId &&
+          other.payload == payload &&
+          other.register == register;
+
+  @override
+  int get hashCode => Object.hash(signalName, writerId, payload, register);
 
   @override
   String toString() => 'DarwinSignalEvent('
@@ -515,11 +550,12 @@ final class DarwinNotificationBus {
       return;
     }
 
+    final weakBus = WeakReference<DarwinNotificationBus>(this);
     final dispatchToken = DarwinNotificationToken.registerDispatch(
       notificationName,
       posix: _posix,
       onNotification: (int rawToken) {
-        _handleDispatchWakeup(notificationName, rawToken);
+        weakBus.target?._handleDispatchWakeup(notificationName, rawToken);
       },
     );
     _dispatchTokens[notificationName] = dispatchToken;
@@ -543,14 +579,10 @@ final class DarwinNotificationBus {
     final stateChannel = _stateChannels[notificationName];
     if (stateChannel != null && stateChannel.hasListener) {
       final localGen = _localGenerations[notificationName];
-      final isSelfEcho = reg.isFromWriter(writerId);
-      final isStaleGen = localGen != null &&
-          reg.shouldSuppressStateWakeup(
-            localWriterId: writerId,
-            localGeneration: localGen,
-          );
-
-      if (isSelfEcho || isStaleGen) {
+      if (reg.shouldSuppressStateWakeup(
+        localWriterId: writerId,
+        localGeneration: localGen,
+      )) {
         _suppressedEchoCount += 1;
       } else {
         if (reg.hasValidMagic) {

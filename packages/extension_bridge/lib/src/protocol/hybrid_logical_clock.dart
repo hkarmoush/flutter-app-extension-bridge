@@ -58,20 +58,27 @@ final class HlcTimestamp implements Comparable<HlcTimestamp> {
   String toQueueFileName(String itemUuid) =>
       '${toSortablePrefix()}_$itemUuid.json';
 
-  /// Parses an [HlcTimestamp] from a [toSortablePrefix] or [toQueueFileName]
-  /// string, returning `null` if the input does not begin with a valid
-  /// `<17-digit-micros>_<4-hex-counter>` header.
+  /// Parses an [HlcTimestamp] from a [toSortablePrefix], [toQueueFileName], or
+  /// full file path string, returning `null` if the basename does not begin
+  /// with a valid `<17-digit-micros>_<4-hex-counter>` header.
   static HlcTimestamp? tryParse(String prefixOrFileName) {
-    if (prefixOrFileName.length < 22) return null;
-    if (prefixOrFileName.codeUnitAt(17) != 0x5F /* '_' */) return null;
-    if (prefixOrFileName.length > 22 &&
-        prefixOrFileName.codeUnitAt(22) != 0x5F /* '_' */ &&
-        prefixOrFileName.codeUnitAt(22) != 0x2E /* '.' */) {
+    final lastSlash = prefixOrFileName.lastIndexOf('/');
+    final lastBackslash = prefixOrFileName.lastIndexOf(r'\');
+    final sepIndex = lastSlash > lastBackslash ? lastSlash : lastBackslash;
+    final target = sepIndex >= 0
+        ? prefixOrFileName.substring(sepIndex + 1)
+        : prefixOrFileName;
+
+    if (target.length < 22) return null;
+    if (target.codeUnitAt(17) != 0x5F /* '_' */) return null;
+    if (target.length > 22 &&
+        target.codeUnitAt(22) != 0x5F /* '_' */ &&
+        target.codeUnitAt(22) != 0x2E /* '.' */) {
       return null;
     }
 
-    final microsStr = prefixOrFileName.substring(0, 17);
-    final counterStr = prefixOrFileName.substring(18, 22);
+    final microsStr = target.substring(0, 17);
+    final counterStr = target.substring(18, 22);
 
     final micros = int.tryParse(microsStr, radix: 10);
     final counter = int.tryParse(counterStr, radix: 16);

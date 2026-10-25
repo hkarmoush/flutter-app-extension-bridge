@@ -79,6 +79,15 @@ void main() {
         jsonStr,
         key: 'now_playing',
       );
+      final headerFromBytes = StateEnvelopeHeader.fromBytes(
+        mapCodec.encodeToBytes(envelope),
+        key: 'now_playing',
+        maxSupportedSchemaVersion: 2,
+      );
+      expect(header, equals(headerFromBytes));
+      expect(header.hashCode, equals(headerFromBytes.hashCode));
+      expect(header.toString(), contains('gen: 105'));
+      expect(decoded.toString(), contains('gen: 105'));
       expect(header.schemaVersion, 2);
       expect(header.generation, 105);
       expect(header.updatedAtMicros, 1729785600999999);

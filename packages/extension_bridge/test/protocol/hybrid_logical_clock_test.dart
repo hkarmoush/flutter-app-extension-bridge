@@ -136,11 +136,16 @@ void main() {
       // Verify round-trip parsing from prefix and full filename
       for (var i = 0; i < timestamps.length; i++) {
         final parsedFromFile = HlcTimestamp.parse(filenames[i]);
+        final parsedFromFullPath = HlcTimestamp.parse(
+          '/var/mobile/Containers/Shared/AppGroup/queue/ready/${filenames[i]}',
+        );
         final parsedFromPrefix = HlcTimestamp.parse(
           timestamps[i].toSortablePrefix(),
         );
         expect(parsedFromFile.wallTimeMicros, timestamps[i].wallTimeMicros);
         expect(parsedFromFile.logicalCounter, timestamps[i].logicalCounter);
+        expect(parsedFromFullPath.wallTimeMicros, timestamps[i].wallTimeMicros);
+        expect(parsedFromFullPath.logicalCounter, timestamps[i].logicalCounter);
         expect(parsedFromPrefix.wallTimeMicros, timestamps[i].wallTimeMicros);
         expect(parsedFromPrefix.logicalCounter, timestamps[i].logicalCounter);
       }

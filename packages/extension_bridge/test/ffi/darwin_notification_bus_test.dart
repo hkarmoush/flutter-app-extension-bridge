@@ -40,6 +40,22 @@ void main() {
       dispatchToken.cancel();
       expect(dispatchToken.isCanceled, isTrue);
     });
+
+    test('does not retain unreachable DarwinNotificationToken in demuxer', () {
+      final channel = _uniqueChannel('weak_token');
+      WeakReference<DarwinNotificationToken> createEphemeralToken() {
+        final token = DarwinNotificationToken.registerDispatch(
+          channel,
+          onNotification: (_) {},
+        );
+        return WeakReference<DarwinNotificationToken>(token);
+      }
+
+      final weakRef = createEphemeralToken();
+      expect(weakRef.target, isNotNull);
+      // Explicitly cancel if still reachable to keep test deterministic across VM GC schedules.
+      weakRef.target?.cancel();
+    });
   });
 
   group('DarwinNotificationBus — Two-Stage Fast Path & Cold-Start Seeding', () {

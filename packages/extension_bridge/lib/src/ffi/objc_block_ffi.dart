@@ -103,8 +103,14 @@ final class DarwinNotifyBlockDemuxer {
   late final Pointer<ObjCBlockDescriptor1> _descriptor;
   late final Pointer<ObjCBlockLayout> _block;
 
+  final Map<int, WeakReference<Object>> _tokenOwners =
+      <int, WeakReference<Object>>{};
   final Map<int, void Function(int token)> _handlers =
       <int, void Function(int token)>{};
+
+  static final Finalizer<int> _ownerFinalizer = Finalizer<int>(
+    instance.unregisterToken,
+  );
 
   /// Pointer to the static Objective-C `void (^)(int token)` block suitable for
   /// passing to `notify_register_dispatch`.
@@ -115,16 +121,39 @@ final class DarwinNotifyBlockDemuxer {
   int get activeTokenCount => _handlers.length;
 
   /// Associates `<notify.h>` [token] with [handler].
-  void registerToken(int token, void Function(int token) handler) {
+  ///
+  /// When [owner] is provided, [handler] must not strongly capture [owner]; a
+  /// Dart [Finalizer] is attached to [owner] so that if [owner] is garbage
+  /// collected without an explicit [unregisterToken] call, the [token] mapping
+  /// is automatically removed from the demultiplexer.
+  void registerToken(
+    int token,
+    void Function(int token) handler, {
+    Object? owner,
+  }) {
     _handlers[token] = handler;
+    if (owner != null) {
+      _tokenOwners[token] = WeakReference<Object>(owner);
+      _ownerFinalizer.attach(owner, token, detach: owner);
+    }
   }
 
   /// Removes the handler associated with `<notify.h>` [token].
-  void unregisterToken(int token) {
+  void unregisterToken(int token, {Object? detachOwner}) {
+    if (detachOwner != null) {
+      _ownerFinalizer.detach(detachOwner);
+    }
+    _tokenOwners.remove(token);
     _handlers.remove(token);
   }
 
   void _onNativeDispatch(Pointer<Void> _, int token) {
+    final ownerRef = _tokenOwners[token];
+    if (ownerRef != null && ownerRef.target == null) {
+      _tokenOwners.remove(token);
+      _handlers.remove(token);
+      return;
+    }
     final handler = _handlers[token];
     if (handler != null) {
       handler(token);
@@ -140,6 +169,12 @@ final class DarwinNotifyBlockDemuxer {
 /// `UIApplicationDidBecomeActiveNotification` and
 /// `NSApplicationDidBecomeActiveNotification` on `NSNotificationCenter` without
 /// depending on `package:flutter`.
+///
+/// **Lifetime Note:** Because [NativeCallable.listener] dispatches onto the
+/// Dart isolate's event loop asynchronously after the synchronous Objective-C
+/// block invocation returns, the raw `NSNotification *` pointer passed to the
+/// callback may already be autoreleased by the time the Dart callback runs and
+/// must not be dereferenced via `objc_msgSend`.
 /// {@endtemplate}
 final class ObjCNotificationBlock {
   /// {@macro extension_bridge.objc_notification_block}
