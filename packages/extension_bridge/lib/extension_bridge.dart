@@ -5,6 +5,8 @@ library;
 
 export 'package:extension_bridge_annotation/extension_bridge_annotation.dart';
 
+export 'src/ffi/apfs_clonefile.dart';
+export 'src/ffi/darwin_notification_bus.dart';
 export 'src/ffi/darwin_posix_ffi.dart';
 export 'src/ffi/extension_kit_hooks.dart';
 export 'src/ffi/objc_block_ffi.dart';
