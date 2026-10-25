@@ -2,6 +2,14 @@
 
 All notable changes to the `extension_bridge` workspace are documented in this file.
 
+## 0.1.0-dev.3
+
+- Implemented `ContainerLayout`, `SnapshotResult<T>`, and `SharedAttachmentManager` (with APFS `clonefile(2)` staging and generation `< currentGen - 2` `@SharedState` blob garbage collection).
+- Implemented `AtomicStateStore<T>` featuring two-stage `~299 ns` `notify_check` → `notify_get_state` fast-path reads, out-of-band `.tmp` staging, zero-FD `.cas` symlink leases, instant `< 1 ms` `kill(pid, 0) == ESRCH` dead-PID lease eviction, and owner-token split-brain protection.
+- Implemented `SharedQueueStore<T>` and `QueueDelivery<T>` featuring lock-free Maildir (`tmp/` → `ready/` → `inflight/`) HLC ordering, `maxItems` backpressure eviction, startup `inflight/` crash recovery, and transactional `ack()`/`nack()`.
+- Added Tier 2 deterministic POSIX fault-injection test suites (`atomic_state_store_test.dart` and `shared_queue_test.dart`).
+- Added `ADR-001`, `ADR-003`, `ADR-004`, and expanded `packages/extension_bridge/README.md`.
+
 ## 0.1.0-dev.2
 
 - Implemented Darwin POSIX, `<notify.h>`, `<sys/clonefile.h>`, and `<dispatch/dispatch.h>` FFI bindings (`DarwinPosixFfi`).

@@ -17,3 +17,8 @@ export 'src/protocol/cas_lease_token.dart';
 export 'src/protocol/hybrid_logical_clock.dart';
 export 'src/protocol/kernel_state_register.dart';
 export 'src/protocol/state_envelope.dart';
+export 'src/storage/atomic_state_store.dart';
+export 'src/storage/container_layout.dart';
+export 'src/storage/shared_attachment_manager.dart';
+export 'src/storage/shared_queue.dart';
+export 'src/storage/snapshot_result.dart';

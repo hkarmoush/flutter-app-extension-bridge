@@ -2,4 +2,6 @@
 
 ## 0.1.0
 
-- Initial release of `extension_bridge` with wire protocol primitives (`KernelStateRegister`, `HybridLogicalClock`, `StateEnvelope`, `CasLeaseToken`), Darwin `<notify.h>` FFI bindings, and lock-free atomic storage.
+- Implemented wire protocol primitives (`KernelStateRegister`, `HybridLogicalClock`, `StateEnvelope`, `CasLeaseToken`, and `ExtensionBridgeException`).
+- Implemented Darwin `<notify.h>`, POSIX, `_NSConcreteGlobalBlock`, and `libobjc.A.dylib` FFI bindings (`DarwinPosixFfi`, `DarwinNotificationBus`, `ObjCRuntimeFfi`, `DarwinLifecycleObserver`, `ExtensionKitHooks`, `ApfsFileCloner`).
+- Implemented `0xdead10cc`-proof lock-free storage engine (`ContainerLayout`, `AtomicStateStore<T>`, `SharedQueueStore<T>`, `SharedAttachmentManager`, and `SnapshotResult<T>`).
