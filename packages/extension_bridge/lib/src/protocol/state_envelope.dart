@@ -207,6 +207,38 @@ final class StateEnvelope<T> {
       attachments: List<String>.unmodifiable(attachments),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StateEnvelope<T> &&
+          other.magic == magic &&
+          other.schemaVersion == schemaVersion &&
+          other.generation == generation &&
+          other.updatedAtMicros == updatedAtMicros &&
+          other.writerId == writerId &&
+          other.payload == payload &&
+          _stringListEquals(other.attachments, attachments);
+
+  @override
+  int get hashCode => Object.hash(
+        magic,
+        schemaVersion,
+        generation,
+        updatedAtMicros,
+        writerId,
+        payload,
+        Object.hashAll(attachments),
+      );
+
+  @override
+  String toString() => 'StateEnvelope('
+      'schemaVersion: $schemaVersion, '
+      'gen: $generation, '
+      'writerId: $writerId, '
+      'updatedAtMicros: $updatedAtMicros, '
+      'attachments: $attachments, '
+      'payload: $payload)';
 }
 
 /// Lightweight header-only view of a [StateEnvelope] used during cold-start
@@ -247,6 +279,7 @@ final class StateEnvelopeHeader {
   factory StateEnvelopeHeader.fromJsonString(
     String jsonString, {
     String? key,
+    int? maxSupportedSchemaVersion,
   }) {
     final Object? decoded;
     try {
@@ -270,6 +303,7 @@ final class StateEnvelopeHeader {
       decoded,
       payloadDecoder: (raw) => raw,
       key: key,
+      maxSupportedSchemaVersion: maxSupportedSchemaVersion,
     );
     return StateEnvelopeHeader(
       schemaVersion: envelope.schemaVersion,
@@ -279,6 +313,65 @@ final class StateEnvelopeHeader {
       attachments: envelope.attachments,
     );
   }
+
+  /// Decodes only the envelope header metadata from raw UTF-8 [bytes].
+  factory StateEnvelopeHeader.fromBytes(
+    Uint8List bytes, {
+    String? key,
+    int? maxSupportedSchemaVersion,
+  }) {
+    final String jsonString;
+    try {
+      jsonString = const Utf8Codec().decode(bytes);
+    } on FormatException catch (error) {
+      throw CorruptEnvelopeException(
+        'Invalid UTF-8 byte sequence in state envelope',
+        key: key,
+        cause: error,
+      );
+    }
+    return StateEnvelopeHeader.fromJsonString(
+      jsonString,
+      key: key,
+      maxSupportedSchemaVersion: maxSupportedSchemaVersion,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StateEnvelopeHeader &&
+          other.schemaVersion == schemaVersion &&
+          other.generation == generation &&
+          other.updatedAtMicros == updatedAtMicros &&
+          other.writerId == writerId &&
+          _stringListEquals(other.attachments, attachments);
+
+  @override
+  int get hashCode => Object.hash(
+        schemaVersion,
+        generation,
+        updatedAtMicros,
+        writerId,
+        Object.hashAll(attachments),
+      );
+
+  @override
+  String toString() => 'StateEnvelopeHeader('
+      'schemaVersion: $schemaVersion, '
+      'gen: $generation, '
+      'writerId: $writerId, '
+      'updatedAtMicros: $updatedAtMicros, '
+      'attachments: $attachments)';
+}
+
+bool _stringListEquals(List<String> a, List<String> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 
 /// {@template extension_bridge.state_envelope_codec}

@@ -73,6 +73,12 @@ void main() {
       expect(reg.isFromWriter(0x2222), isTrue);
       expect(reg.isFromWriter(0x3333), isFalse);
 
+      // Self-echo from localWriterId is suppressed even when localGeneration is null
+      expect(
+        reg.shouldSuppressStateWakeup(localWriterId: 0x2222),
+        isTrue,
+      );
+
       // Same or older generation than local state -> suppress wakeup
       expect(
         reg.shouldSuppressStateWakeup(

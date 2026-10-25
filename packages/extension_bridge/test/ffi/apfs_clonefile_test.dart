@@ -91,6 +91,21 @@ void main() {
         expect(result.fallbackErrno, equals(simulatedErrno));
         expect(File(dstPath).readAsBytesSync(), equals(payload));
       }
+
+      // Also verify explicit AttachmentCopyMode.streamOnly mode.
+      final streamOnlyDst = p.join(tempDir.path, 'blobs', 'stream_only.mov');
+      final streamOnlyResult = ApfsFileCloner(chunkSizeBytes: 32 * 1024)
+          .cloneFileSync(
+        sourcePath: srcPath,
+        destinationPath: streamOnlyDst,
+        copyMode: AttachmentCopyMode.streamOnly,
+      );
+      expect(
+        streamOnlyResult.strategy,
+        equals(CloneStrategy.streamingFallback),
+      );
+      expect(streamOnlyResult.fallbackErrno, isNull);
+      expect(File(streamOnlyDst).readAsBytesSync(), equals(payload));
     });
 
     test('throws AttachmentCloneException on missing source or fatal errno', () {

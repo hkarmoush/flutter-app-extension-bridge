@@ -43,7 +43,7 @@ final class DarwinLifecycleObserver {
   final List<String> _notificationNames;
 
   final List<Pointer<Void>> _observerTokens = <Pointer<Void>>[];
-  ObjCNotificationBlock? _block;
+  final List<ObjCNotificationBlock> _blocks = <ObjCNotificationBlock>[];
   StreamController<String>? _controller;
   bool _isDisposed = false;
   int _resumeCount = 0;
@@ -70,20 +70,21 @@ final class DarwinLifecycleObserver {
   void _startObserving() {
     if (_isDisposed || _observerTokens.isNotEmpty) return;
 
-    final block = ObjCNotificationBlock((_) {
-      if (_isDisposed) return;
-      _resumeCount += 1;
-      _controller?.add('DidBecomeActive');
-    });
-    _block = block;
-
     for (final name in _notificationNames) {
+      final block = ObjCNotificationBlock((_) {
+        if (_isDisposed) return;
+        _resumeCount += 1;
+        _controller?.add(name);
+      });
       final token = _objc.addNotificationObserver(
         notificationName: name,
         block: block,
       );
       if (token != nullptr) {
         _observerTokens.add(token);
+        _blocks.add(block);
+      } else {
+        block.dispose();
       }
     }
   }
@@ -93,8 +94,10 @@ final class DarwinLifecycleObserver {
       _objc.removeNotificationObserver(token);
     }
     _observerTokens.clear();
-    _block?.dispose();
-    _block = null;
+    for (final block in _blocks) {
+      block.dispose();
+    }
+    _blocks.clear();
   }
 
   /// Simulates a foreground resume notification on

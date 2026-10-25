@@ -95,18 +95,22 @@ extension type const KernelStateRegister(int rawBits) {
   ///
   /// A state notification is suppressed if the register has a valid magic
   /// header and **either**:
-  /// 1. Its [generation] is already `<= localGeneration` (modulo 32-bit mask)
-  ///    known in memory, or
-  /// 2. It was emitted by [localWriterId] and its [generation] matches the
-  ///    local state.
+  /// 1. It was emitted by [localWriterId] (`isFromWriter(localWriterId)`), or
+  /// 2. [localGeneration] is known and the register's [generation] is already
+  ///    `<= localGeneration` (modulo 32-bit mask) in memory.
   bool shouldSuppressStateWakeup({
     required int localWriterId,
-    required int localGeneration,
+    int? localGeneration,
   }) {
     if (!hasValidMagic) return false;
-    final maskedLocalGen = localGeneration & _kMask32;
-    if (generation <= maskedLocalGen) {
+    if (writerId == (localWriterId & _kMask16)) {
       return true;
+    }
+    if (localGeneration != null) {
+      final maskedLocalGen = localGeneration & _kMask32;
+      if (generation <= maskedLocalGen) {
+        return true;
+      }
     }
     return false;
   }

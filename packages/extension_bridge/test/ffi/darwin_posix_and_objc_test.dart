@@ -86,10 +86,7 @@ void main() {
 
   group('ObjCRuntimeFfi & AppGroupContainerResolver', () {
     final objc = ObjCRuntimeFfi.instance;
-    final createdGroupDirs = <String>[
-      '/Users/farisarmoush/Library/Group Containers/group.dev.extension_bridge.nonexistent_test_suite',
-      '/Users/farisarmoush/Library/Group Containers/group.com.example.unentitled',
-    ];
+    final createdGroupDirs = <String>[];
 
     tearDown(() {
       AppGroupContainerResolver.clearAllOverrides();
@@ -164,7 +161,10 @@ void main() {
       observer.simulateDidBecomeActive();
       await Future<void>.delayed(const Duration(milliseconds: 30));
 
-      expect(events, isNotEmpty);
+      expect(
+        events,
+        contains(kNSApplicationDidBecomeActiveNotification),
+      );
       expect(observer.resumeCount, greaterThanOrEqualTo(1));
 
       await sub.cancel();

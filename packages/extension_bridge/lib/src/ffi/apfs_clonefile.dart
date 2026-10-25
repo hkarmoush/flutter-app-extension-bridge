@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:extension_bridge_annotation/extension_bridge_annotation.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
@@ -49,8 +50,28 @@ final class ApfsCloneResult {
   final int elapsedMicros;
 
   /// If [strategy] is [CloneStrategy.streamingFallback], the POSIX `errno`
-  /// (`EXDEV`, `ENOTSUP`, `ENOSYS`) that triggered the fallback.
+  /// (`EXDEV`, `ENOTSUP`, `ENOSYS`) that triggered the fallback, or `null` if
+  /// [AttachmentCopyMode.streamOnly] was explicitly requested.
   final int? fallbackErrno;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ApfsCloneResult &&
+          other.sourcePath == sourcePath &&
+          other.destinationPath == destinationPath &&
+          other.strategy == strategy &&
+          other.elapsedMicros == elapsedMicros &&
+          other.fallbackErrno == fallbackErrno;
+
+  @override
+  int get hashCode => Object.hash(
+        sourcePath,
+        destinationPath,
+        strategy,
+        elapsedMicros,
+        fallbackErrno,
+      );
 
   @override
   String toString() => 'ApfsCloneResult('
@@ -101,7 +122,8 @@ final class ApfsFileCloner {
 
   /// Synchronously clones [sourcePath] to [destinationPath] using APFS
   /// `clonefile(2)` (`CLONE_NOOWNERCOPY`), falling back to a chunked streaming
-  /// copy if `clonefile(2)` returns `EXDEV`, `ENOTSUP`, or `ENOSYS`.
+  /// copy if `clonefile(2)` returns `EXDEV`, `ENOTSUP`, or `ENOSYS` (or when
+  /// [copyMode] is [AttachmentCopyMode.streamOnly]).
   ///
   /// The file is staged to a hidden sibling `.tmp` path and committed via
   /// atomic POSIX `rename(2)` so readers of [destinationPath] never observe a
@@ -110,6 +132,7 @@ final class ApfsFileCloner {
     required String sourcePath,
     required String destinationPath,
     int flags = ClonefileFlags.noOwnerCopy,
+    AttachmentCopyMode copyMode = AttachmentCopyMode.cloneOrStream,
   }) {
     final stopwatch = Stopwatch()..start();
     final sourceFile = File(sourcePath);
@@ -128,6 +151,23 @@ final class ApfsFileCloner {
     }
 
     final stagingPath = _buildStagingPath(destinationPath);
+    _posix.unlink(stagingPath);
+
+    if (copyMode == AttachmentCopyMode.streamOnly) {
+      _streamCopySync(
+        sourceFile: sourceFile,
+        stagingPath: stagingPath,
+        destinationPath: destinationPath,
+      );
+      stopwatch.stop();
+      return ApfsCloneResult(
+        sourcePath: sourcePath,
+        destinationPath: destinationPath,
+        strategy: CloneStrategy.streamingFallback,
+        elapsedMicros: stopwatch.elapsedMicroseconds,
+      );
+    }
+
     final syscall = _clonefileOverride ??
         (String src, String dst, int f) => _posix.clonefile(src, dst, flags: f);
 
@@ -181,16 +221,18 @@ final class ApfsFileCloner {
 
   /// Asynchronously clones [sourcePath] to [destinationPath] using APFS
   /// `clonefile(2)` (`CLONE_NOOWNERCOPY`), or a chunked streaming fallback on
-  /// cross-volume `EXDEV` / `ENOTSUP`.
+  /// cross-volume `EXDEV` / `ENOTSUP` (or [AttachmentCopyMode.streamOnly]).
   Future<ApfsCloneResult> cloneFile({
     required String sourcePath,
     required String destinationPath,
     int flags = ClonefileFlags.noOwnerCopy,
+    AttachmentCopyMode copyMode = AttachmentCopyMode.cloneOrStream,
   }) async =>
       cloneFileSync(
         sourcePath: sourcePath,
         destinationPath: destinationPath,
         flags: flags,
+        copyMode: copyMode,
       );
 
   static bool _shouldFallbackToStreaming(int errno) =>
