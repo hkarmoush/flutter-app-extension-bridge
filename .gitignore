@@ -1,0 +1,23 @@
+# Dart / Flutter tooling
+.dart_tool/
+.packages
+build/
+pubspec.lock
+doc/api/
+coverage/
+
+# Swift / Xcode build artifacts
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# macOS / Editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

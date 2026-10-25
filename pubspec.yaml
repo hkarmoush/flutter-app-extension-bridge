@@ -1,0 +1,11 @@
+name: extension_bridge_workspace
+description: Monorepo workspace for extension_bridge (Type-safe Darwin App Extension IPC & lock-free atomic storage).
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+workspace:
+  - packages/extension_bridge_annotation
+  - packages/extension_bridge
+  - packages/extension_bridge_generator

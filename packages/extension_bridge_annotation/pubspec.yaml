@@ -1,0 +1,12 @@
+name: extension_bridge_annotation
+description: Zero-dependency annotations for declaring type-safe cross-process App Group schemas, lock-free states, queues, and Darwin signals with extension_bridge.
+version: 0.1.0
+repository: https://github.com/hkarmoush/flutter-app-extension-bridge
+issue_tracker: https://github.com/hkarmoush/flutter-app-extension-bridge/issues
+resolution: workspace
+
+environment:
+  sdk: ^3.6.0
+
+dev_dependencies:
+  test: ^1.25.0
