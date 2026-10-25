@@ -5,5 +5,8 @@ library;
 
 export 'package:extension_bridge_annotation/extension_bridge_annotation.dart';
 
+export 'src/protocol/bridge_exception.dart';
+export 'src/protocol/cas_lease_token.dart';
 export 'src/protocol/hybrid_logical_clock.dart';
 export 'src/protocol/kernel_state_register.dart';
+export 'src/protocol/state_envelope.dart';
