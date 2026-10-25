@@ -48,5 +48,5 @@ final class BridgeModel {
   String toString() => 'BridgeModel(discriminatorKey: $discriminatorKey)';
 }
 
-/// Convenience constant for [`@BridgeModel()`](BridgeModel).
+/// Convenience constant for [BridgeModel] (`@bridgeModel`).
 const bridgeModel = BridgeModel();

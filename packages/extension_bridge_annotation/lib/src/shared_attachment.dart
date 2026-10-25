@@ -1,5 +1,5 @@
-/// Strategy used when staging a [`@SharedAttachment`](SharedAttachment) file
-/// into the App Group container's `blobs/` directory.
+/// Strategy used when staging a [SharedAttachment] file into the App Group
+/// container's `blobs/` directory.
 enum AttachmentCopyMode {
   /// Attempts a zero-copy APFS copy-on-write clone via
   /// `clonefile(src, dst, CLONE_NOOWNERCOPY)` (~0.3 ms, 0 extra disk bytes),
@@ -63,5 +63,5 @@ final class SharedAttachment {
   String toString() => 'SharedAttachment(copyMode: $copyMode)';
 }
 
-/// Convenience constant for [`@SharedAttachment()`](SharedAttachment).
+/// Convenience constant for [SharedAttachment] (`@sharedAttachment`).
 const sharedAttachment = SharedAttachment();

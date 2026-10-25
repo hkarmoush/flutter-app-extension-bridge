@@ -73,5 +73,5 @@ final class DefaultEnumValue {
   String toString() => 'DefaultEnumValue()';
 }
 
-/// Convenience constant for [`@DefaultEnumValue()`](DefaultEnumValue).
+/// Convenience constant for [DefaultEnumValue] (`@defaultEnumValue`).
 const defaultEnumValue = DefaultEnumValue();
