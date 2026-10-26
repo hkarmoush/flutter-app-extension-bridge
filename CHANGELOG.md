@@ -2,6 +2,16 @@
 
 All notable changes to the `extension_bridge` workspace are documented in this file.
 
+## 0.1.0-dev.4
+
+- Implemented standalone Swift 6 Core Runtime (`swift/ExtensionBridgeCore`, `swift-tools-version: 6.0` with strict `Sendable` checking):
+  - `KernelStateRegister`, `HybridLogicalClock` / `HlcTimestamp`, `CasLeaseToken`, `StateEnvelope<T>` / `StateEnvelopeHeader` / `StateEnvelopeCodec<T>`, and `ExtensionBridgeError`.
+  - `DarwinPosix`, `ApfsFileCloner` (`clonefile(src, dst, CLONE_NOOWNERCOPY)` with chunked streaming fallback on `EXDEV`/`ENOTSUP`/`ENOSYS`), and `DarwinNotifyCenter` (two-stage `notify_check` ~299 ns shared-memory fast path → `notify_get_state` ~9.3 µs Mach IPC, cold-start `0x0` seeding, O(1) self-echo suppression, 32-bit `@DarwinSignal` RPCs, and Swift 6 `AsyncStream` streams).
+  - `ContainerLayout`, `AppGroupContainerResolver`, `SnapshotResult<T>`, `SharedAttachmentManager`, `AtomicStateStore<T>`, `SharedQueueStore<T>` (`SharedQueueWriter<T>`), and `ExtensionBridgeVault`.
+  - `ExtensionActivityGuard` (`performActivity` and `#if os(iOS)` `performExpiringActivity`) and `ExtensionKitCAbiSupport` for `@_cdecl` `WidgetCenter` and iOS 18 `ControlCenter` hooks.
+- Authored native Xcode Swift-DocC documentation catalog (`ExtensionBridgeCore.docc`).
+- Added Swift 6 Tier 1 & Tier 2 test suites (`ProtocolTests`, `DarwinNotifyAndClonerTests`, `AtomicStateStoreTests`, `SharedQueueStoreTests`) and cross-language Dart ↔ Swift 6 interoperability suite (`swift_dart_interop_test.dart`).
+
 ## 0.1.0-dev.3
 
 - Implemented `ContainerLayout`, `SnapshotResult<T>`, and `SharedAttachmentManager` (with APFS `clonefile(2)` staging and generation `< currentGen - 2` `@SharedState` blob garbage collection).
